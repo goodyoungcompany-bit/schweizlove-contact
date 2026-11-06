@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kontakt – SchweizLove</title>
+<meta name="description" content="Schreib uns über das Kontaktformular von SchweizLove.">
+<meta name="theme-color" content="#E21F14">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/fraunces-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="./">SchweizLove</a>
+    <nav aria-label="Hauptnavigation">
+      <a href="./">Startseite</a>
+      <a href="kontakt.html" aria-current="page">Kontakt</a>
+      <a href="privacy.html">Datenschutz</a>
+    </nav>
+  </div>
+</header>
+
+<main id="inhalt" class="wrap prose">
+  <a class="back" href="./">&larr; Zurück zur Startseite</a>
+  <h1>Kontakt</h1>
+  <p>Schreib uns, wir antworten per E-Mail. Deine Angaben verwenden wir nur, um deine Anfrage zu beantworten.</p>
+
+  <form id="contact-form" class="form" method="post" action="#" autocomplete="on">
+    <div class="field">
+      <label for="f-name">Name <span class="hint">(freiwillig)</span></label>
+      <input id="f-name" name="name" type="text" maxlength="100" autocomplete="name">
+    </div>
+
+    <div class="field">
+      <label for="f-email">E-Mail-Adresse</label>
+      <input id="f-email" name="email" type="email" maxlength="200" required autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label for="f-message">Nachricht <span class="hint">(mindestens 10 Zeichen)</span></label>
+      <textarea id="f-message" name="message" rows="7" minlength="10" maxlength="4000" required></textarea>
+    </div>
+
+    <!-- Spam-Falle: Menschen sehen und füllen dieses Feld nicht aus -->
+    <div class="hp" aria-hidden="true">
+      <label for="f-website">Website</label>
+      <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
+    </div>
+
+    <div class="field consent">
+      <input id="f-consent" name="consent" type="checkbox" required>
+      <label for="f-consent">Ich habe die <a href="privacy.html#kontaktformular">Datenschutzerklärung</a> gelesen und bin damit einverstanden, dass meine Angaben zur Beantwortung meiner Anfrage verarbeitet werden.</label>
+    </div>
+
+    <button id="send" class="btn btn-primary" type="submit">Nachricht senden</button>
+    <p id="form-status" class="status" role="status" aria-live="polite"></p>
+  </form>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-in">
+    <span>&copy; 2026 SchweizLove</span>
+    <nav class="footer-links" aria-label="Rechtliches">
+      <a href="impressum.html">Impressum</a>
+      <a href="kontakt.html">Kontakt</a>
+      <a href="privacy.html">Datenschutz</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Adresse des Formular-Dienstes (Railway). Hier steht NUR diese URL, nie eine E-Mail-Adresse.
+  var API = "https://schweizlove-contact-production.up.railway.app/api/contact";
+
+  var form = document.getElementById("contact-form");
+  var statusEl = document.getElementById("form-status");
+  var sendBtn = document.getElementById("send");
+  var loadedAt = Date.now();
+
+  var MSG = {
+    ok: "Danke! Deine Nachricht ist angekommen.",
+    zu_schnell: "Das ging sehr schnell. Bitte warte einen Moment und sende noch einmal.",
+    ungueltig: "Bitte prüfe E-Mail-Adresse und Nachricht (mindestens 10 Zeichen).",
+    zustimmung: "Bitte bestätige die Datenschutzhinweise.",
+    links: "Bitte entferne einige Links aus der Nachricht.",
+    zu_viele: "Zu viele Nachrichten. Bitte versuche es später noch einmal.",
+    standard: "Leider hat es nicht geklappt. Bitte versuche es später noch einmal."
+  };
+
+  function show(kind, text) {
+    statusEl.className = "status" + (kind ? " " + kind : "");
+    statusEl.textContent = text;
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (API.indexOf("DEIN-DIENST") !== -1) { show("error", MSG.standard); return; }
+
+    sendBtn.disabled = true;
+    show("", "Wird gesendet …");
+
+    var payload = {
+      name: document.getElementById("f-name").value,
+      email: document.getElementById("f-email").value,
+      message: document.getElementById("f-message").value,
+      consent: document.getElementById("f-consent").checked,
+      website: document.getElementById("f-website").value,
+      lang: "de",
+      elapsed: Date.now() - loadedAt
+    };
+
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; });
+      })
+      .then(function (res) {
+        if (res.data && res.data.ok) {
+          form.reset();
+          loadedAt = Date.now();
+          show("ok", MSG.ok);
+        } else {
+          var code = res.status === 429 ? "zu_viele" : (res.data && res.data.error);
+          show("error", MSG[code] || MSG.standard);
+        }
+      })
+      .catch(function () { show("error", MSG.standard); })
+      .then(function () { sendBtn.disabled = false; });
+  });
+})();
+</script>
+
+</body>
+</html>
