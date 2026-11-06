@@ -1,0 +1,4 @@
+Flask>=3.0
+requests>=2.31
+supabase>=2.18.0   # ab 2.18 werden die neuen Schluessel (sb_secret_...) akzeptiert
+gunicorn>=22.0
